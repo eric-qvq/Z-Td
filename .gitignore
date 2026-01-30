@@ -1,0 +1,17 @@
+# 忽略构建目录
+build/
+MyToDoApp/
+FinalToDo/
+
+# 忽略 VS Code 配置 (可选，建议忽略)
+.vscode/
+
+# 忽略所有编译出来的可执行文件
+*.exe
+*.o
+
+# 忽略 Qt 的缓存文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
