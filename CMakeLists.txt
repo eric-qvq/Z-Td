@@ -20,7 +20,12 @@ set(CMAKE_PREFIX_PATH "D:/Qt/6.10.2/mingw_64")
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 # 添加你的源代码文件
-add_executable(Z-Td main.cpp logo.rc)
+add_executable(Z-Td 
+    main.cpp 
+    mainwindow.cpp 
+    mainwindow.h 
+    logo.rc
+)
 # 链接 Qt 库
 target_link_libraries(Z-Td PRIVATE Qt6::Widgets)
 
