@@ -45,8 +45,8 @@
 
 ```bash
 # 1. 克隆项目
-git clone [https://github.com/你的用户名/Qt-ToDo-List.git](https://github.com/你的用户名/Qt-ToDo-List.git)
-cd Qt-ToDo-List
+git clone https://github.com/eric-qvq/Z-Td.git
+cd Z-Td
 
 # 2. 创建构建目录
 mkdir build
