@@ -1,45 +1,47 @@
-# 📝 Qt To-Do List
+# 📝 Qt Modern To-Do List
 
-![Qt](https://img.shields.io/badge/Qt-6.0%2B-green.svg) ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg) ![License](https://img.shields.io/badge/License-MIT-yellow.svg) ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
+![Qt](https://img.shields.io/badge/Qt-6.0%2B-green.svg) ![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg) ![Network](https://img.shields.io/badge/Qt-Network-orange.svg) ![API](https://img.shields.io/badge/API-Open--Meteo-yellow.svg)
 
-一个基于 **C++** 和 **Qt 6** 框架开发的现代化桌面待办事项管理应用。
-不仅具备基础的增删改查功能，还集成了系统托盘、黑夜模式、拖拽排序等高级特性，旨在提供轻量、高效的任务管理体验。
+一个基于 **C++** 和 **Qt 6** 开发的现代化桌面待办事项管理仪表盘。
+本项目不仅仅是一个列表工具，更集成了**实时天气获取**、**系统托盘驻留**、**黑夜模式切换**以及**拖拽排序**等高级功能，旨在打造一个全能的个人效率中心。
 
-## ✨ 功能特性 (Features)
+## ✨ 核心特性 (Features)
 
-### 核心功能
-- ✅ **任务管理**：支持添加、删除任务，双击任务即可**编辑内容**。
-- 📅 **截止日期**：支持为任务设置截止日期，直观展示时间安排。
-- 💾 **数据持久化**：使用 **JSON** 格式本地存储数据，程序关闭后数据不丢失。
-- 🖱️ **拖拽排序**：支持通过鼠标拖拽 (Drag & Drop) 自由调整任务优先级。
+### 🖥️ 现代化仪表盘 (Dashboard UI)
+- **全新布局**：采用“控制台”式设计，将时间、天气、操作按钮与输入区合理分区。
+- **沉浸式输入**：超大尺寸的独立输入栏，提供极佳的输入专注度。
+- **动态交互**：按钮和输入框经过 CSS 深度美化，支持悬停 (Hover) 与按压 (Pressed) 动态效果。
 
-### 用户体验优化
-- 🌗 **深色/浅色模式**：一键切换主题，支持持久化保存用户的主题偏好。
-- 🔍 **实时搜索**：顶部搜索栏支持实时过滤任务，快速定位。
-- ⏰ **实时时钟**：界面集成动态跳动的系统时间显示。
-- ☑️ **一键清理**：快速移除所有已完成的任务。
+### ☁️ 联网功能 (Network & API)
+- **实时天气**：集成 `Qt Network` 模块，调用 **Open-Meteo API** 实时获取当地（默认台北）的气温与天气状况。
+- **异步加载**：采用非阻塞式网络请求，确保界面流畅不卡顿。
 
-### 系统级集成
-- 📥 **系统托盘**：程序可最小化至系统托盘，支持后台运行。
-- ⚙️ **记忆功能**：自动记忆窗口大小、位置以及“关闭时是否最小化”的用户设置。
-- 🖱️ **右键菜单**：提供便捷的右键上下文菜单（编辑/删除）。
+### 🛠️ 任务管理 (Task Management)
+- **增删改查**：支持快速添加、双击编辑、一键清理已完成任务。
+- **日期规划**：内置日历控件 (`QDateEdit`)，为每个任务设定截止日期。
+- **拖拽排序**：支持通过鼠标拖拽 (Drag & Drop) 自由调整任务优先级。
+- **实时搜索**：顶部搜索栏支持关键词实时过滤。
+
+### ⚙️ 系统集成与体验
+- **黑夜模式**：内置 Light/Dark 两套主题，一键切换并自动记忆。
+- **系统托盘**：支持最小化到托盘，程序可常驻后台运行。
+- **数据持久化**：使用 JSON 格式本地存储任务数据与用户设置。
 
 ## 🛠️ 技术栈 (Tech Stack)
 
-- **编程语言**: C++ 17
-- **GUI 框架**: Qt 6 (Widgets 模块)
+- **语言**: C++ 17
+- **框架**: Qt 6 (Widgets, Network)
 - **构建工具**: CMake
-- **数据格式**: JSON (`QJsonDocument`, `QJsonObject`)
-- **配置存储**: `QSettings` (注册表/INI)
-- **开发环境**: VS Code + MinGW / MSVC
+- **数据存储**: JSON (`QJsonDocument`)
+- **网络通信**: `QNetworkAccessManager` (REST API)
+- **第三方服务**: [Open-Meteo API](https://open-meteo.com/) (无需 Key，免费开源)
 
 ## 🚀 快速开始 (Build & Run)
 
-### 前置要求
-确保你的电脑上已安装：
-1.  **C++ 编译器** (MinGW 或 MSVC)
-2.  **CMake** (3.16 或更高版本)
-3.  **Qt 6 SDK**
+### 环境要求
+1.  **C++ 编译器** (MinGW / MSVC)
+2.  **CMake** (3.16+)
+3.  **Qt 6 SDK** (需包含 `Qt Network` 模块)
 
 ### 构建步骤
 
