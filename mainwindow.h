@@ -16,6 +16,11 @@
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QWidget>
+
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 class MainWindow : public QWidget {
     Q_OBJECT
 
@@ -38,7 +43,9 @@ class MainWindow : public QWidget {
     QMenu *trayMenu;
     QLineEdit *searchBox;
     QPushButton *themeButton; // 切换主题的按钮
-    bool isDarkMode = false;  // 记录当前是不是黑夜模式
+    QLabel *weatherLabel;
+    QNetworkAccessManager *netManager; // 网络管理器
+    bool isDarkMode = false;           // 记录当前是不是黑夜模式
 
     void toggleTheme();      // 切换主题的函数
     void updateThemeStyle(); // 刷新样式的函数
@@ -53,6 +60,9 @@ class MainWindow : public QWidget {
     void deleteTask(QListWidgetItem *item);
     void loadSettings(); // 启动时读取
     void saveSettings(); // 关闭时保存
+
+    void fetchWeather();
+    QString getWeatherEmoji(int code); // 根据天气代码返回对应的表情符号
 };
 
 #endif // MAINWINDOW_H

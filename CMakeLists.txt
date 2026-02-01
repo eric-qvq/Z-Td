@@ -17,7 +17,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_PREFIX_PATH "D:/Qt/6.10.2/mingw_64") 
 
 # 查找 Qt 的 Widgets 模块 (做界面用的)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Network)
 
 # 添加你的源代码文件
 add_executable(Z-Td 
@@ -27,7 +27,7 @@ add_executable(Z-Td
     logo.rc
 )
 # 链接 Qt 库
-target_link_libraries(Z-Td PRIVATE Qt6::Widgets)
+target_link_libraries(Z-Td PRIVATE Qt6::Widgets Qt6::Network)
 
 # 防止打开时后面跟着一个黑框框 (控制台)
 set_target_properties(Z-Td PROPERTIES WIN32_EXECUTABLE ON)

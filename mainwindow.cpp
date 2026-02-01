@@ -18,8 +18,42 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
     this->setWindowTitle("Z-Td List");
     this->resize(400, 600);
 
+    // 1. 初始化网络管理者
+    netManager = new QNetworkAccessManager(this);
+
+    // 2. 连接“请求完成”的信号
+    // 当网络请求回来时，自动执行这个 Lambda 函数
+    connect(netManager, &QNetworkAccessManager::finished, this, [=](QNetworkReply *reply) {
+        if (reply->error() == QNetworkReply::NoError) {
+            // A. 读取数据
+            QByteArray response = reply->readAll();
+
+            // B. 解析 JSON
+            QJsonDocument doc = QJsonDocument::fromJson(response);
+            QJsonObject obj = doc.object();
+            QJsonObject current = obj["current_weather"].toObject();
+
+            // C. 提取温度和天气代码
+            double temp = current["temperature"].toDouble();
+            int weatherCode = current["weathercode"].toInt();
+
+            // D. 更新 UI
+            QString emoji = getWeatherEmoji(weatherCode);
+            weatherLabel->setText(QString("%1 %2°C").arg(emoji).arg(temp));
+        } else {
+            weatherLabel->setText("❌ 网络错误");
+        }
+        reply->deleteLater(); // 释放内存
+    });
+
     setupUi();
     setupTrayIcon(); // 设置系统托盘图标
+    fetchWeather();
+
+    // 4. (可选) 设置定时器，每 1 小时自动刷新一次
+    QTimer *weatherTimer = new QTimer(this);
+    connect(weatherTimer, &QTimer::timeout, this, &MainWindow::fetchWeather);
+    weatherTimer->start(3600 * 1000); // 3600秒 = 1小时
 
     QTimer *timer = new QTimer(this);
 
@@ -70,7 +104,7 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent) {
 MainWindow::~MainWindow() {
 }
 
-void MainWindow::setupUi() {
+/* void MainWindow::setupUi() {
     QLabel *titleLabel = new QLabel("今日待办事项", this);
     titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; margin-bottom: 10px;");
     titleLabel->setAlignment(Qt::AlignCenter);
@@ -140,6 +174,301 @@ void MainWindow::setupUi() {
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(minimizeCheckBox);
     mainLayout->addLayout(inputLayout);
+    mainLayout->addWidget(taskList);
+} */
+
+/* void MainWindow::setupUi() {
+    // ================= 1. 初始化控件 & 设置样式 =================
+
+    // --- 1. 时间标签 (保持在最顶层左边) ---
+    timeLabel = new QLabel(this);
+    timeLabel->setStyleSheet("font-size: 16px; font-weight: bold; font-family: Consolas, Monospace; color: #555;");
+
+    // --- 2. 主题切换按钮 (保持在最顶层右边) ---
+    themeButton = new QPushButton("🌙 切换主题", this);
+    themeButton->setStyleSheet("border: none; background: transparent; font-weight: bold; color: #555;");
+    themeButton->setCursor(Qt::PointingHandCursor);
+
+    // --- 3. 搜索框 ---
+    searchBox = new QLineEdit(this);
+    searchBox->setPlaceholderText("🔍 搜索任务...");
+    searchBox->setStyleSheet("padding: 6px; border-radius: 15px; border: 1px solid #ddd;");
+
+    // --- 4. 标题 ---
+    QLabel *titleLabel = new QLabel("今日待办事项", this);
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin: 10px 0; color: #333;");
+    titleLabel->setAlignment(Qt::AlignCenter);
+
+    // --- 5. 日期选择器 (放在标题下面) ---
+    dateEdit = new QDateEdit(QDate::currentDate(), this);
+    dateEdit->setCalendarPopup(true);
+    dateEdit->setDisplayFormat("yyyy-MM-dd");
+    // 设置一点高度，不要太矮
+    dateEdit->setMinimumHeight(35);
+    dateEdit->setStyleSheet("padding: 0 10px; border: 1px solid #ccc; border-radius: 6px; color: #333;");
+
+    // --- 6. 功能按钮 (添加 & 清理) ---
+    addButton = new QPushButton("添加任务", this);
+    addButton->setStyleSheet(
+        "background-color: #007ACC; color: white; border-radius: 6px; padding: 6px 20px; font-weight: bold;");
+    addButton->setMinimumHeight(35);
+
+    clearButton = new QPushButton("🧹 清理已完成", this);
+    clearButton->setStyleSheet(
+        "background-color: #E0E0E0; color: #333; border-radius: 6px; padding: 6px 10px; border: 1px solid #ccc;");
+    clearButton->setMinimumHeight(35);
+
+    // --- 7. 输入框 (重点：单独一栏，放大) ---
+    inputBox = new QLineEdit(this);
+    inputBox->setPlaceholderText("在此输入新的待办事项内容...");
+    inputBox->setMinimumHeight(50); // 【关键】设置高度为 50px，显眼！
+    inputBox->setStyleSheet(
+        "font-size: 18px; padding: 0 15px; border: 2px solid #007ACC; border-radius: 8px; background-color: white;");
+
+    // --- 8. 最小化选项 ---
+    minimizeCheckBox = new QCheckBox("关闭时最小化到托盘", this);
+    minimizeCheckBox->setChecked(true);
+    minimizeCheckBox->setStyleSheet("font-size: 12px; color: #666; margin-bottom: 5px;");
+
+    // --- 9. 任务列表 ---
+    taskList = new QListWidget(this);
+    taskList->setStyleSheet(
+        "font-size: 15px; border: 1px solid #eee; border-radius: 10px; padding: 5px; outline: none;");
+    taskList->setSelectionMode(QAbstractItemView::SingleSelection);
+    taskList->setDragEnabled(true);
+    taskList->setAcceptDrops(true);
+    taskList->setDropIndicatorShown(true);
+    taskList->setDragDropMode(QAbstractItemView::InternalMove);
+
+    // ================= 2. 组装布局 (Layout) =================
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(12); // 控件垂直间距
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+
+    // --- 第 1 行：时间 + 主题 (TopBar) ---
+    QHBoxLayout *topLayout = new QHBoxLayout();
+    topLayout->addWidget(timeLabel);   // 左：时间
+    topLayout->addStretch();           // 中：弹簧
+    topLayout->addWidget(themeButton); // 右：主题
+    mainLayout->addLayout(topLayout);
+
+    // --- 第 2 行：搜索框 ---
+    mainLayout->addWidget(searchBox);
+
+    // --- 第 3 行：大标题 ---
+    mainLayout->addWidget(titleLabel);
+
+    // --- 第 4 行：操作栏 (日历 + 添加 + 清理) ---
+    QHBoxLayout *controlLayout = new QHBoxLayout();
+    controlLayout->addWidget(dateEdit);    // 日历
+    controlLayout->addWidget(addButton);   // 添加
+    controlLayout->addStretch();           // 弹簧 (让清理按钮靠右，或者去掉这行让它们紧挨着)
+    controlLayout->addWidget(clearButton); // 清理
+    mainLayout->addLayout(controlLayout);
+
+    // --- 第 5 行：输入框 (大、独占) ---
+    mainLayout->addWidget(inputBox);
+
+    // --- 第 6 行：选项 ---
+    mainLayout->addWidget(minimizeCheckBox);
+
+    // --- 第 7 行：列表 ---
+    mainLayout->addWidget(taskList);
+} */
+
+void MainWindow::setupUi() {
+    // ================= 1. 初始化控件 & 设置样式 =================
+
+    // --- 1. 时间标签 ---
+    timeLabel = new QLabel(this);
+    timeLabel->setStyleSheet("font-size: 16px; font-weight: bold; font-family: Consolas, Monospace; color: #555;");
+
+    weatherLabel = new QLabel(this);
+    weatherLabel->setText("🌤️ 22°C 晴"); // 这里先写死，作为演示
+    weatherLabel->setStyleSheet("font-size: 16px;"
+                                "font-weight: bold;"
+                                "color: #555;"
+                                "margin-left: 15px;" // 关键：给左边加点间距，别和时间挤在一起
+                                "font-family: 'Microsoft YaHei';");
+
+    // --- 2. 主题切换按钮 ---
+    themeButton = new QPushButton("🌙 切换主题", this);
+    themeButton->setStyleSheet("QPushButton { border: none; background: transparent; font-weight: bold; color: #666; }"
+                               "QPushButton:hover { color: #007ACC; }" // 悬停变蓝
+    );
+    themeButton->setCursor(Qt::PointingHandCursor);
+
+    // --- 3. 搜索框 ---
+    searchBox = new QLineEdit(this);
+    searchBox->setPlaceholderText("🔍 搜索任务...");
+    searchBox->setStyleSheet("padding: 6px; border-radius: 15px; border: 1px solid #ddd; background: white;");
+
+    // --- 4. 标题 ---
+    QLabel *titleLabel = new QLabel("今日待办事项", this);
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin: 15px 0; color: #333;");
+    titleLabel->setAlignment(Qt::AlignCenter);
+
+    // --- 5. 日期选择器 (大整容) ---
+    dateEdit = new QDateEdit(QDate::currentDate(), this);
+    dateEdit->setCalendarPopup(true);
+    dateEdit->setDisplayFormat("yyyy-MM-dd");
+    dateEdit->setMinimumHeight(38); // 稍微高一点
+    // 【CSS 魔法】
+    dateEdit->setStyleSheet("QDateEdit {"
+                            "   padding-left: 10px;"
+                            "   border: 1px solid #ccc;"
+                            "   border-radius: 6px;"
+                            "   color: #333;"
+                            "   background: white;"
+                            "}"
+                            // 右边的下拉按钮样式
+                            "QDateEdit::drop-down {"
+                            "   subcontrol-origin: padding;"
+                            "   subcontrol-position: top right;"
+                            "   width: 30px;"
+                            "   border-left: 1px solid #ccc;" /* 左边加一条线分割 */
+                            "   border-top-right-radius: 6px;"
+                            "   border-bottom-right-radius: 6px;"
+                            "   background-color: #f5f5f5;" /* 按钮背景稍微灰一点 */
+                            "}"
+                            "QDateEdit::drop-down:hover {"
+                            "   background-color: #e0e0e0;" /* 悬停变深 */
+                            "}"
+                            // 下箭头的样式 (虽然没放图片，但利用 CSS 让它看起来干净)
+                            "QDateEdit::down-arrow {"
+                            "   width: 10px; height: 10px;"
+                            // 这里如果有图片可以是 image: url(:/icon.png);
+                            // 没有图片时，Qt 默认会画一个小三角，我们通过上面的背景色让它显眼即可
+                            "}");
+
+    // --- 6. 功能按钮 (加 Emoji + 动态效果) ---
+    addButton = new QPushButton("➕ 添加任务", this); // 加上 Emoji
+    addButton->setMinimumHeight(38);
+    addButton->setCursor(Qt::PointingHandCursor);
+    addButton->setStyleSheet("QPushButton {"
+                             "   background-color: #007ACC;"
+                             "   color: white;"
+                             "   border-radius: 6px;"
+                             "   padding: 0 20px;"
+                             "   font-weight: bold;"
+                             "   font-size: 14px;"
+                             "}"
+                             "QPushButton:hover {"
+                             "   background-color: #0062a3;" /* 悬停变深蓝 */
+                             "}"
+                             "QPushButton:pressed {"
+                             "   background-color: #004472;" /* 按下更深 */
+                             "   padding-top: 2px;"          /* 只有按下时文字下移，产生按压感 */
+                             "}");
+
+    clearButton = new QPushButton("🗑️ 清理完成", this); // 加上 Emoji
+    clearButton->setMinimumHeight(38);
+    clearButton->setCursor(Qt::PointingHandCursor);
+    clearButton->setStyleSheet("QPushButton {"
+                               "   background-color: #f0f0f0;"
+                               "   color: #333;"
+                               "   border: 1px solid #ccc;"
+                               "   border-radius: 6px;"
+                               "   padding: 0 15px;"
+                               "   font-weight: bold;"
+                               "}"
+                               "QPushButton:hover {"
+                               "   background-color: #e6e6e6;" /* 悬停变灰 */
+                               "   border-color: #bbb;"
+                               "}"
+                               "QPushButton:pressed {"
+                               "   background-color: #dcdcdc;"
+                               "   padding-top: 2px;"
+                               "}");
+
+    // --- 7. 输入框 (大、白、净) ---
+    inputBox = new QLineEdit(this);
+    inputBox->setPlaceholderText("✍️ 在此输入新的待办事项内容..."); // 加个笔的 Emoji
+    inputBox->setMinimumHeight(50);
+    inputBox->setStyleSheet("QLineEdit {"
+                            "   font-size: 18px;"
+                            "   padding: 0 15px;"
+                            "   border: 2px solid #e0e6ed;" /* 默认边框浅蓝灰 */
+                            "   border-radius: 8px;"
+                            "   background-color: white;"
+                            "   color: #333;"
+                            "}"
+                            "QLineEdit:focus {"
+                            "   border: 2px solid #007ACC;" /* 聚焦时变亮蓝 */
+                            "}");
+
+    // --- 8. 最小化选项 ---
+    minimizeCheckBox = new QCheckBox("关闭时最小化到托盘", this);
+    minimizeCheckBox->setChecked(true);
+    minimizeCheckBox->setStyleSheet("QCheckBox { font-size: 12px; color: #666; margin-bottom: 5px; }"
+                                    "QCheckBox::indicator { width: 16px; height: 16px; }" /* 放大一点勾选框 */
+    );
+
+    // --- 9. 任务列表 ---
+    taskList = new QListWidget(this);
+    taskList->setStyleSheet("QListWidget {"
+                            "   font-size: 15px;"
+                            "   border: 1px solid #eee;"
+                            "   border-radius: 10px;"
+                            "   padding: 5px;"
+                            "   background-color: white;"
+                            "   outline: none;"
+                            "}"
+                            "QListWidget::item {"
+                            "   padding: 8px;"
+                            "   border-bottom: 1px solid #f9f9f9;"
+                            "}"
+                            "QListWidget::item:selected {"
+                            "   background-color: #e6f2ff;"
+                            "   color: #007ACC;"
+                            "   border-radius: 4px;"
+                            "}"
+                            "QListWidget::item:hover {"
+                            "   background-color: #f5f7fa;" /* 鼠标划过微微变色 */
+                            "}");
+    taskList->setSelectionMode(QAbstractItemView::SingleSelection);
+    taskList->setDragEnabled(true);
+    taskList->setAcceptDrops(true);
+    taskList->setDropIndicatorShown(true);
+    taskList->setDragDropMode(QAbstractItemView::InternalMove);
+
+    // ================= 2. 组装布局 (Layout) =================
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(15); // 稍微增加间距，呼吸感更强
+    mainLayout->setContentsMargins(25, 25, 25, 25);
+
+    // Top
+    QHBoxLayout *topLayout = new QHBoxLayout();
+    topLayout->addWidget(timeLabel);    // 1. 时间
+    topLayout->addWidget(weatherLabel); // 2. 天气 (加在这里！)
+    topLayout->addStretch();            // 3. 弹簧 (把后面顶到最右边)
+    topLayout->addWidget(themeButton);  // 4. 主题按钮
+    mainLayout->addLayout(topLayout);
+
+    // Search
+    mainLayout->addWidget(searchBox);
+
+    // Title
+    mainLayout->addWidget(titleLabel);
+
+    // Control Bar (日历 + 添加 + 清理)
+    QHBoxLayout *controlLayout = new QHBoxLayout();
+    controlLayout->setSpacing(10); // 按钮之间的间距
+    controlLayout->addWidget(dateEdit);
+    controlLayout->addWidget(addButton);
+    controlLayout->addStretch();
+    controlLayout->addWidget(clearButton);
+    mainLayout->addLayout(controlLayout);
+
+    // Input
+    mainLayout->addWidget(inputBox);
+
+    // Option
+    mainLayout->addWidget(minimizeCheckBox);
+
+    // List
     mainLayout->addWidget(taskList);
 }
 
@@ -375,6 +704,9 @@ void MainWindow::updateThemeStyle() {
             QPushButton { background-color: #365880; color: white; border-radius: 6px; padding: 6px; }
             QPushButton:hover { background-color: #4b6eaf; }
         )";
+        timeLabel->setStyleSheet("color: #e0e0e0; font-size: 16px; font-weight: bold; font-family: Consolas;");
+        weatherLabel->setStyleSheet(
+            "color: #e0e0e0; font-size: 16px; font-weight: bold; margin-left: 15px; font-family: 'Microsoft YaHei';");
     } else {
         // --- 亮色模式样式 (原来的) ---
         style = R"(
@@ -386,7 +718,39 @@ void MainWindow::updateThemeStyle() {
             QPushButton { background-color: #007ACC; color: white; border-radius: 6px; padding: 6px; }
             QPushButton:hover { background-color: #0056b3; }
         )";
+        timeLabel->setStyleSheet("color: #555; font-size: 16px; font-weight: bold; font-family: Consolas;");
+        weatherLabel->setStyleSheet(
+            "color: #555; font-size: 16px; font-weight: bold; margin-left: 15px; font-family: 'Microsoft YaHei';");
     }
-    // 应用到全局
     qApp->setStyleSheet(style);
+}
+
+void MainWindow::fetchWeather() {
+    // Open-Meteo API URL
+    // latitude=纬度, longitude=经度
+    QString url = "https://api.open-meteo.com/v1/forecast?"
+                  "latitude=23.02&longitude=113.23" // <--- 这里修改你的坐标
+                  "&current_weather=true";
+
+    // 发送 GET 请求
+    netManager->get(QNetworkRequest(QUrl(url)));
+}
+QString MainWindow::getWeatherEmoji(int code) {
+    // 根据 WMO Weather Codes 转换
+    // 0: 晴天, 1-3: 多云, 45-48: 雾, 51-67: 雨, 71-77: 雪, 95-99: 雷雨
+    if (code == 0)
+        return "☀️";
+    if (code >= 1 && code <= 3)
+        return "⛅";
+    if (code >= 45 && code <= 48)
+        return "🌫️";
+    if (code >= 51 && code <= 67)
+        return "🌧️";
+    if (code >= 71 && code <= 77)
+        return "❄️";
+    if (code >= 80 && code <= 82)
+        return "🌦️";
+    if (code >= 95 && code <= 99)
+        return "⛈️";
+    return "🤷"; // 未知
 }
